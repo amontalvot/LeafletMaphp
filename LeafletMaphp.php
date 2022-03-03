@@ -253,7 +253,15 @@ class LeafletMaphp {
                 foreach ($this->polygons[$i]['multi'] as $polygon) {
                     $polygonText .= "[";
                     foreach ($polygon as $coord) {
-                        $polygonText .= "[{$coord[1]}, {$coord[0]}],";
+                        if(count($coord) == 2) {
+                            $polygonText .= "[{$coord[1]}, {$coord[0]}],";
+                        } else {
+                            $polygonText .= "[";
+                            foreach ($coord as $realCoord) {
+                                $polygonText .= "[{$realCoord[1]}, {$realCoord[0]}],";
+                            }
+                            $polygonText .= "],";
+                        }
                     }
                     $polygonText = substr($polygonText, 0, -1); //remove last ','
                     $polygonText .= "],";
