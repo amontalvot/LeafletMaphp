@@ -1,6 +1,6 @@
 <?php
 /*
-LeafletMaphp class, ver. 1.0
+LeafletMaphp class, ver. 1.1
 Copyright 2022 Aaron Montalvo
 
 This program is free software; you can redistribute it and/or modify
@@ -30,10 +30,25 @@ class LeafletMaphp {
     const CIRCLE = 1;
     const POLYGON = 2;
 
+    const ES_PNOA = 10;
+    const ES_RASTER_IGN = 11;
+    const ES_IGN_BASE = 12;
+    const ES_CATASTRO = 13;
+    const OSM = 14;
+    const OSM_DE = 15;
+    const OSM_FR = 16;
+    const OSM_HUMANITARIAN = 17;
+    const STAMEN_TONER = 18;
+    const STAMEN_TERRAIN = 19;
+    const STAMEN_WATERCOLOR = 20;
+    const OPNVKARTE_TRANSPORT = 21;
+    const OPEN_TOPO_MAP = 22;
+
     private $div_id;
     private $div_height;
     private $div_style;
     private $div_width;
+    private $tiles = self::OSM_DE;
     private $lat = NULL;
     private $lon = NULL;
     private $zoom = 15;
@@ -44,11 +59,12 @@ class LeafletMaphp {
     private $geoJSONs = [];
     private $onClickFunText = '';
 
-    function __construct(string $id='map', int $height = 300, int $width = 300, string $style='') {
+    function __construct(string $id='map', int $height = 300, int $width = 300, string $style='', int $tiles=NULL) {
         $this->div_id = $id;
         $this->div_height = $height;
         $this->div_width = $width;
         $this->div_style = $style;
+        if($tiles != NULL) $this->tiles = $tiles;
     }
     function showHeadTags () : string {
         return "\t<link rel='stylesheet' href='https://unpkg.com/leaflet@1.7.1/dist/leaflet.css' integrity='sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==' crossorigin=''/>
@@ -191,8 +207,86 @@ class LeafletMaphp {
         } else {
             $drawnItems = "var drawnItems = new L.FeatureGroup([";
         }
+        $scriptText = "var map = L.map('{$this->div_id}');\n";
+        $maxZoom = 18;
 
-        $scriptText = "var map = L.map('{$this->div_id}');\nL.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors', maxZoom: 18 }).addTo(map);\n";
+        $tiles_URL = '';
+        $tiles_layer = '';
+        $tiles_attribution = '';
+        switch($this->tiles) {
+            case self::ES_PNOA:
+                $tiles_URL= 'http://www.ign.es/wms-inspire/pnoa-ma';
+                $tiles_layer = 'OI.OrthoimageCoverage';
+                $tiles_attribution = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                break;
+            case self::ES_RASTER_IGN:
+                $tiles_URL= 'http://www.ign.es/wms-inspire/mapa-raster';
+                $tiles_layer = 'mtn_rasterizado';
+                $tiles_attribution = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                break;
+            case self::ES_IGN_BASE:
+                $tiles_URL= 'http://www.ign.es/wms-inspire/ign-base';
+                $tiles_layer = 'IGNBaseTodo';
+                $tiles_attribution = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                break;
+            case self::ES_CATASTRO:
+                $tiles_URL= 'http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx';
+                $tiles_layer = 'Catastro';
+                $tiles_attribution = '&copy; © <a href="http://www.catastro.minhap.gob.es/esp/wms.asp">Dirección General del Catastro</a>';
+                break;
+            //free maps taken from list at https://wiki.openstreetmap.org/wiki/Tiles, see OSM wiki for updated information about availability and attribution
+            case self::OSM:
+                $tiles_URL = 'http://tile.openstreetmap.org/{z}/{x}/{y}.png';
+                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                break;
+            case self::OSM_DE:
+                $tiles_URL = 'http://a.tile.openstreetmap.de/{z}/{x}/{y}.png';
+                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                break;
+            case self::OSM_FR:
+                $tiles_URL = 'http://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
+                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                break;
+            case self::OSM_HUMANITARIAN:
+                $tiles_URL = 'http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
+                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                break;
+            case self::STAMEN_TONER:
+                $tiles_URL = 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png';
+                $tiles_attribution = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
+                break;
+            case self::STAMEN_TERRAIN:
+                $tiles_URL = 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png';
+                $tiles_attribution = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
+                break;
+            case self::STAMEN_WATERCOLOR:
+                $tiles_URL = 'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png';
+                $tiles_attribution = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.';
+                break;
+            case self::OPNVKARTE_TRANSPORT:
+                $tiles_URL = 'http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png';
+                $tiles_attribution = 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC BY SA</a>, map data <a href="http://openstreetmap.org/">Openstreetmap ODbL</a>';
+                break;
+            case self::OPEN_TOPO_MAP:
+                $tiles_URL = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+                $tiles_attribution = 'Kartendaten: © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM | Kartendarstellung: © <a href="http://opentopomap.org/">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
+                $maxZoom = 17;
+                break;
+            default:
+                throw new LeafletMaphpException('Tileset not found');
+                break;
+        }
+        switch($this->tiles) {
+            case self::ES_PNOA: case self::ES_RASTER_IGN: case self::ES_IGN_BASE: case self::ES_CATASTRO: 
+                $scriptText .= "L.tileLayer.wms('$tiles_URL', {layers: '$tiles_layer', format: 'image/png', transparent: false, continuousWorld : true, attribution: '$tiles_attribution'}).addTo(map);\n";
+                break;
+            case self::OSM: case self::OSM_DE: case self::OSM_FR: case self::OSM_HUMANITARIAN: case self::STAMEN_TONER: case self::STAMEN_TERRAIN: case self::STAMEN_WATERCOLOR: case self::OPNVKARTE_TRANSPORT: case self::OPEN_TOPO_MAP:
+                $scriptText .= "L.tileLayer('$tiles_URL', { attribution: '$tiles_attribution', maxZoom: $maxZoom }).addTo(map);\n";
+                break;
+            default:
+                throw new LeafletMaphpException('Tileset not found');
+                break;
+        }
         
         if((is_array($this->bounds)) && (count($this->bounds) == 4)) {
             $scriptText .= "map.fitBounds([[{$this->bounds[0]}, {$this->bounds[2]}], [{$this->bounds[1]}, {$this->bounds[3]}]]);\n";
