@@ -1,6 +1,6 @@
 <?php
 /*
-LeafletMaphp class, ver. 1.1
+LeafletMaphp class, ver. 1.2
 Copyright 2022 Aaron Montalvo
 
 This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,7 @@ class LeafletMaphp {
     const MARKER = 0;
     const CIRCLE = 1;
     const POLYGON = 2;
+    const POLYLINE = 3;
 
     const ES_PNOA = 10;
     const ES_RASTER_IGN = 11;
@@ -43,12 +44,17 @@ class LeafletMaphp {
     const STAMEN_WATERCOLOR = 20;
     const OPNVKARTE_TRANSPORT = 21;
     const OPEN_TOPO_MAP = 22;
+    const CUSTOM_TILES = 23;
 
     private $div_id;
     private $div_height;
     private $div_style;
     private $div_width;
     private $tiles = self::OSM_DE;
+    private $tilesUrl = '';
+    private $tilesAtt = '';
+    private $tilesMinZoom = 1;
+    private $tilesMaxZoom = 18;
     private $lat = NULL;
     private $lon = NULL;
     private $zoom = 15;
@@ -56,19 +62,36 @@ class LeafletMaphp {
     private $markers = [];
     private $circles = [];
     private $polygons = [];
+    private $polylines = [];
     private $geoJSONs = [];
     private $onClickFunText = '';
 
-    function __construct(string $id='map', int $height = 300, int $width = 300, string $style='', int $tiles=NULL) {
+    function __construct(string $id='map', int $height = 300, int $width = 300, string $style='', int $tiles=self::OSM_DE) {
         $this->div_id = $id;
         $this->div_height = $height;
         $this->div_width = $width;
         $this->div_style = $style;
-        if($tiles != NULL) $this->tiles = $tiles;
+        if(!empty($tiles)) {
+            if(($tiles < self::ES_PNOA) || ($tiles > self::CUSTOM_TILES)) {
+                throw new LeafletMaphpException("Wrong tiles selection {$tiles}");
+            } else {
+                $this->tiles = $tiles;
+            }
+        }
     }
+	
+    function setCustomTiles(string $tilesIp='', string $tilesWeb='', string $tilesAtt = '', int $tilesMinZoom = 0, int $tilesMaxZoom = 0) {
+		if(!empty($tilesIp) && !empty($tilesWeb) && !empty($tilesAtt) && !empty($tilesMinZoom) && !empty($tilesMaxZoom)) {
+			$this->tilesUrl = "http://{$tilesIp}/{$tilesWeb}";
+			$this->tilesAtt = $tilesAtt;
+			$this->tilesMinZoom = $tilesMinZoom;
+			$this->tilesMaxZoom = $tilesMaxZoom;
+		}
+	}
+	
     function showHeadTags () : string {
-        return "\t<link rel='stylesheet' href='https://unpkg.com/leaflet@1.7.1/dist/leaflet.css' integrity='sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==' crossorigin=''/>
-    <script src='https://unpkg.com/leaflet@1.7.1/dist/leaflet.js' integrity='sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==' crossorigin=''></script>
+        return "\t<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.3/dist/leaflet.css' integrity='sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=' crossorigin=''/>
+    <script src='https://unpkg.com/leaflet@1.9.3/dist/leaflet.js' integrity='sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=' crossorigin=''></script>
     <style>#{$this->div_id} { height: {$this->div_height}px; width: {$this->div_width}px }</style>\n";
     }
 
@@ -79,7 +102,7 @@ class LeafletMaphp {
             $this->zoom = $zoom;
         if($bounds != NULL) {
             if(count($bounds) != 4) 
-                throw new LeafletMaphpException('Bounds array != 4');
+                throw new LeafletMaphpException('Bounds array count != 4');
             $this->bounds = $bounds;
         }
     }
@@ -91,7 +114,7 @@ class LeafletMaphp {
         return (count($this->markers)-1);
     }
 
-    function addCircle(float $lat, float $lon, string $color=NULL, float $radius=NULL) : int  {
+    function addCircle(float $lat, float $lon, string $color=NULL, float $radius=NULL) : int {
         $circle['lat'] = $lat;
         $circle['lon'] = $lon;
         if($color != NULL) $circle['color'] = $color;
@@ -107,14 +130,25 @@ class LeafletMaphp {
         return (count($this->circles)-1);
     }
 
-    function addPolygon (array $polydata, string $color=NULL) : int  {
+    function addPolyline (array $polydata, string $color=NULL) : int {
+        if(count($polydata) == 0)
+            throw new LeafletMaphpException('Polydata is empty');
+        $polyline['data'] = $polydata;
+        if($color != NULL) $polyline['color'] = $color;
+        array_push($this->polylines, $polyline);
+        return (count($this->polylines)-1);
+    }
+
+    function addPolygon (array $polydata, string $color=NULL) : int {
+        if(count($polydata) == 0)
+            throw new LeafletMaphpException('Polydata is empty');
         $polygon['data'] = $polydata;
         if($color != NULL) $polygon['color'] = $color;
         array_push($this->polygons, $polygon);
         return (count($this->polygons)-1);
     }
 
-    function addMultipolygon (array $multipolydata, string $color=NULL) : int  {
+    function addMultipolygon (array $multipolydata, string $color=NULL) : int {
         $polygon['multi'] = $multipolydata;
         if($color != NULL) $polygon['color'] = $color;
         array_push($this->polygons, $polygon);
@@ -134,6 +168,10 @@ class LeafletMaphp {
             case self::POLYGON:
                 if(!isset($this->polygons[$element_id])) throw new LeafletMaphpException('Wrong polygon ID');
                 $this->polygons[$element_id]['toolTip'] = $toolTip;
+                break;
+            case self::POLYLINE:
+                if(!isset($this->polylines[$element_id])) throw new LeafletMaphpException('Wrong polyline ID');
+                $this->polylines[$element_id]['toolTip'] = $toolTip;
                 break;
             default:
                 throw new LeafletMaphpException('Wrong element type');
@@ -155,6 +193,10 @@ class LeafletMaphp {
                 if(!isset($this->polygons[$element_id])) throw new LeafletMaphpException('Wrong polygon ID');
                 $this->polygons[$element_id]['popUp'] = $popUp;
                 break;
+            case self::POLYLINE:
+                if(!isset($this->polylines[$element_id])) throw new LeafletMaphpException('Wrong polyline ID');
+                $this->polylines[$element_id]['popUp'] = $popUp;
+                break;
             default:
                 throw new LeafletMaphpException('Wrong element type');
                 break;
@@ -174,6 +216,10 @@ class LeafletMaphp {
             case self::POLYGON:
                 if(!isset($this->polygons[$element_id])) throw new LeafletMaphpException('Wrong polygon ID');
                 $this->polygons[$element_id]['onClick'] = $onClick;
+                break;
+            case self::POLYLINE:
+                if(!isset($this->polylines[$element_id])) throw new LeafletMaphpException('Wrong polyline ID');
+                $this->polylines[$element_id]['onClick'] = $onClick;
                 break;
             default:
                 throw new LeafletMaphpException('Wrong element type');
@@ -200,93 +246,95 @@ class LeafletMaphp {
     }
 
     function show() : string {
-        if((count($this->markers) == 0) && (count($this->circles) == 0) && (count($this->polygons) == 0) && (count($this->geoJSONs) == 0)) {
-            if(($this->lat == NULL) && ($this->lon == NULL)) {
-                throw new LeafletMaphpException('No items added nor center set: Map is inviewable');
-            }
+        if((count($this->markers) == 0) && (count($this->circles) == 0) && (count($this->polygons) == 0) && (count($this->polylines) == 0) && (count($this->geoJSONs) == 0) && ($this->lat == NULL) && ($this->lon == NULL)) {
+            throw new LeafletMaphpException('No items added nor center set: Map is inviewable');
         } else {
             $drawnItems = "var drawnItems = new L.FeatureGroup([";
         }
         $scriptText = "var map = L.map('{$this->div_id}');\n";
-        $maxZoom = 18;
 
-        $tiles_URL = '';
         $tiles_layer = '';
-        $tiles_attribution = '';
         switch($this->tiles) {
             case self::ES_PNOA:
-                $tiles_URL= 'http://www.ign.es/wms-inspire/pnoa-ma';
+                $this->tilesUrl= 'http://www.ign.es/wms-inspire/pnoa-ma';
                 $tiles_layer = 'OI.OrthoimageCoverage';
-                $tiles_attribution = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesAtt = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
                 break;
             case self::ES_RASTER_IGN:
-                $tiles_URL= 'http://www.ign.es/wms-inspire/mapa-raster';
+                $this->tilesUrl= 'http://www.ign.es/wms-inspire/mapa-raster';
                 $tiles_layer = 'mtn_rasterizado';
-                $tiles_attribution = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesAtt = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
                 break;
             case self::ES_IGN_BASE:
-                $tiles_URL= 'http://www.ign.es/wms-inspire/ign-base';
+                $this->tilesUrl= 'http://www.ign.es/wms-inspire/ign-base';
                 $tiles_layer = 'IGNBaseTodo';
-                $tiles_attribution = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesAtt = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
                 break;
             case self::ES_CATASTRO:
-                $tiles_URL= 'http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx';
+                $this->tilesUrl= 'http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx';
                 $tiles_layer = 'Catastro';
-                $tiles_attribution = '&copy; © <a href="http://www.catastro.minhap.gob.es/esp/wms.asp">Dirección General del Catastro</a>';
+                $this->tilesAtt = '&copy; © <a href="http://www.catastro.minhap.gob.es/esp/wms.asp">Dirección General del Catastro</a>';
                 break;
             //free maps taken from list at https://wiki.openstreetmap.org/wiki/Tiles, see OSM wiki for updated information about availability and attribution
             case self::OSM:
-                $tiles_URL = 'http://tile.openstreetmap.org/{z}/{x}/{y}.png';
-                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                $this->tilesUrl = 'http://tile.openstreetmap.org/{z}/{x}/{y}.png';
+                $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
             case self::OSM_DE:
-                $tiles_URL = 'http://a.tile.openstreetmap.de/{z}/{x}/{y}.png';
-                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                $this->tilesUrl = 'http://a.tile.openstreetmap.de/{z}/{x}/{y}.png';
+                $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
             case self::OSM_FR:
-                $tiles_URL = 'http://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
-                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                $this->tilesUrl = 'http://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
+                $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
             case self::OSM_HUMANITARIAN:
-                $tiles_URL = 'http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
-                $tiles_attribution = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
+                $this->tilesUrl = 'http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
+                $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
             case self::STAMEN_TONER:
-                $tiles_URL = 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png';
-                $tiles_attribution = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
+                $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png';
+                $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
                 break;
             case self::STAMEN_TERRAIN:
-                $tiles_URL = 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png';
-                $tiles_attribution = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
+                $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png';
+                $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
                 break;
             case self::STAMEN_WATERCOLOR:
-                $tiles_URL = 'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png';
-                $tiles_attribution = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.';
+                $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png';
+                $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.';
                 break;
             case self::OPNVKARTE_TRANSPORT:
-                $tiles_URL = 'http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png';
-                $tiles_attribution = 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC BY SA</a>, map data <a href="http://openstreetmap.org/">Openstreetmap ODbL</a>';
+                $this->tilesUrl = 'http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png';
+                $this->tilesAtt = 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC BY SA</a>, map data <a href="http://openstreetmap.org/">Openstreetmap ODbL</a>';
                 break;
             case self::OPEN_TOPO_MAP:
-                $tiles_URL = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
-                $tiles_attribution = 'Kartendaten: © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM | Kartendarstellung: © <a href="http://opentopomap.org/">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
-                $maxZoom = 17;
+                $this->tilesUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+                $this->tilesAtt = 'Kartendaten: © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM | Kartendarstellung: © <a href="http://opentopomap.org/">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
+                $this->tilesMaxZoom = 17;
+                break;
+            case self::CUSTOM_TILES:
+				if(empty($this->tilesUrl) || empty($this->tilesAtt)) {
+					throw new LeafletMaphpException('Custom tiles not configured. Use method "setCustomTiles" ');
+				}
                 break;
             default:
                 throw new LeafletMaphpException('Tileset not found');
                 break;
         }
+
         switch($this->tiles) {
             case self::ES_PNOA: case self::ES_RASTER_IGN: case self::ES_IGN_BASE: case self::ES_CATASTRO: 
-                $scriptText .= "L.tileLayer.wms('$tiles_URL', {layers: '$tiles_layer', format: 'image/png', transparent: false, continuousWorld : true, attribution: '$tiles_attribution'}).addTo(map);\n";
+                $scriptText .= "L.tileLayer.wms('{$this->tilesUrl}', {layers: '$tiles_layer', format: 'image/png', transparent: false, continuousWorld : true,";
                 break;
-            case self::OSM: case self::OSM_DE: case self::OSM_FR: case self::OSM_HUMANITARIAN: case self::STAMEN_TONER: case self::STAMEN_TERRAIN: case self::STAMEN_WATERCOLOR: case self::OPNVKARTE_TRANSPORT: case self::OPEN_TOPO_MAP:
-                $scriptText .= "L.tileLayer('$tiles_URL', { attribution: '$tiles_attribution', maxZoom: $maxZoom }).addTo(map);\n";
+            case self::OSM: case self::OSM_DE: case self::OSM_FR: case self::OSM_HUMANITARIAN: case self::STAMEN_TONER: case self::STAMEN_TERRAIN: case self::STAMEN_WATERCOLOR: case self::OPNVKARTE_TRANSPORT: case self::OPEN_TOPO_MAP: case self::CUSTOM_TILES:
+                $scriptText .= "L.tileLayer('{$this->tilesUrl}', {";
                 break;
             default:
                 throw new LeafletMaphpException('Tileset not found');
                 break;
         }
+        $scriptText .= " attribution: '{$this->tilesAtt}', minZoom: {$this->tilesMinZoom}, maxZoom: {$this->tilesMaxZoom} }).addTo(map);\n";
         
         if((is_array($this->bounds)) && (count($this->bounds) == 4)) {
             $scriptText .= "map.fitBounds([[{$this->bounds[0]}, {$this->bounds[2]}], [{$this->bounds[1]}, {$this->bounds[3]}]]);\n";
@@ -380,6 +428,34 @@ class LeafletMaphp {
             $polygonText .= ".addTo(map);\n";
             $scriptText .= $polygonText;
             $drawnItems .= "polygon$i,";
+        }
+
+        for($i=0; $i<count($this->polylines); ++$i) {
+            $polylineText = "var polyline$i = L.polyline([";
+            if(isset($this->polylines[$i]['data'])) {
+                foreach ($this->polylines[$i]['data'] as $coord) {
+                    $polylineText .= "[{$coord[1]}, {$coord[0]}],";
+                }
+            }
+            $polylineText = substr($polylineText, 0, -1); //remove last ','
+            $polylineText .= "]";
+            if(isset($this->polylines[$i]['color']) || (isset($this->polylines[$i]['onClick']))) {
+                $optionsText = '';
+                if(isset($this->polylines[$i]['color'])) {
+                    $optionsText .= "color: '{$this->polylines[$i]['color']}'";
+                }
+                if(isset($this->polylines[$i]['onClick'])) {
+                    if($optionsText != '') $optionsText .= ', ';
+                    $optionsText .= "onClickText: '{$this->polylines[$i]['onClick']}'";
+                }
+                $polylineText .= ', {'.$optionsText.'}';
+            }
+            $polylineText .= ')';
+            if(isset($this->polylines[$i]['onClick'])) $this->addOnClickFunction($this->polylines[$i], $polylineText);
+            $this->addText($this->polylines[$i], $polylineText);
+            $polylineText .= ".addTo(map);\n";
+            $scriptText .= $polylineText;
+            $drawnItems .= "polyline$i,";
         }
 
         for($i=0; $i<count($this->geoJSONs); ++$i) {
