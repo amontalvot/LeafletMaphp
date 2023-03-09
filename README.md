@@ -53,7 +53,7 @@ When adding several elements of any type, the bounding box is automatically reca
 $map->addMarker($lat, $lon);
 $map->addCircle($lat, $lon, $color?, $radius?);
 $map->addPolygon($data, $color?);
-$map->addPolylines($data, $color?);
+$map->addPolyline($data, $color?);
 $map->addMultipolygon($data, $color?);
 $map->addGeoJSON($data, $color?);
 ```
