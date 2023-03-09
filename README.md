@@ -1,14 +1,19 @@
 LeafletMaphp
 ============
 A simple PHP wrapper to Leaflet JS using OSM data and tiles
-Current version is 1.2
+Current version is 1.3
 
 Basic usage
 -----------
-Create a new instance of LeafletMaphp. You can optionally give a name to the required div for the map, height and width in px (by default 'map' and 300), a string containing the desired css and the desired tiles to be used.
+Create a new instance of LeafletMaphp.
 ```php
 $map = new LeafletMaphp($map?, $height?, $width?, $style?, $tiles?);
 ```
+The parameters, all of them non-compulsory, are:
+* a name to the required div for the map (by default 'map').
+* height and width in px (by default 300x300).
+* a string containing the desired css.
+* the desired tiles to be used (see below).
 
 The available tiles are from Spain Instituto Geográfico Nacional (IGN, https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign) and Catastro (http://www.catastro.minhap.gob.es/esp/wms.asp), both for Spain only, and the free ones listed in https://wiki.openstreetmap.org/wiki/Tiles. All of them are attributed by default, but see OSM wiki for updated information about availability and attribution.
 * ES_PNOA: Spain's IGN Ortofotos máxima actualidad del PNOA
@@ -32,10 +37,14 @@ You must add the required Leaflet tags before closing the &lt;head&gt;. Current 
 echo '<head>'.$map->showHeadTags().'</head>';
 ```
 
-Then you only have to center for the map location, using latitude and longitude coordinates. You can also optionally add the bounding box for the map, which must be an array of 4 elements, and a zoom value to be used by default.
+Then you only have to center for the map location, 
 ```php
 $map->setCenter($latitude, $longitude, $bounds?, $zoom?) {
 ```
+The parameters are:
+* latitude and longitude coordinates.
+* optionally, the bounding box for the map, which must be an array of 4 elements.
+* optionally, a zoom value to be used by default.
 
 Finally you have to show the &lt;div&gt; element (the proper map) by calling its own method in the location you want it to be displayed.
 ```php
@@ -46,7 +55,7 @@ Adding Leaflet items
 --------------------
 You can add several Leaflet items using the proper method. Several methods have optional parameters.
 
-Markers, Circles and Polygons (including Multipolygons) will return the numeric id of the current element of its type. Circle #0 is different from Marker #0 and from Polygon #0. Please note that Polygons and Multipolygons are in the same list, so the id of a Multipolygon added after Polygon #3 will be Multipolygon #4.
+Markers, Circles, Polygons, Polylines and Multipolygons will return the numeric identifier of the current element of its type. Circle #0 is different from Marker #0 and from Polygon #0. Please note that Polygons and Multipolygons are in the same list, so the id of a Multipolygon added after Polygon #3 will be Multipolygon #4.
 
 When adding several elements of any type, the bounding box is automatically recalculated for keeping all of them on sight.
 ```php
@@ -58,16 +67,18 @@ $map->addMultipolygon($data, $color?);
 $map->addGeoJSON($data, $color?);
 ```
 
-For a map to be correctly rendered, you must either add any item or set the map center coordinates.
+**For a map to be correctly rendered, you must either add any item or set the map center coordinates.**
 
 Adding text on items
 --------------------
-You can add several Leaflet text elements: Popups, ToolTips and onClickText. All of them can be added in Markers, Circles and Polygons (including Multipolygons). You have to select the type using the constants defined (MARKER, CIRCLE, POLYGON and the id of the desired element).
+You can add several Leaflet text elements: **PopUp**, **ToolTip** and **onClickText**. 
 ```php
 $map->addTooltip($element_type, $element_id, $toolTipText);
 $map->addPopUp($element_type, $element_id, $PopupText);
 $map->addOnClickText($element_type, $element_id, $onClickText);
 ```
+All of them can be added in elements of type *Marker*, *Circle*, *Polygon*, *Polyline* and *Multipolygon*.
+You have to select the type using the constants defined (*MARKER*, *CIRCLE*, *POLYGON*) and the identifier of the desired element. 
 
 If you have added any onClickText on any marker, you have to show also a new &lt;div&gt; element that will have the id 'onClickDiv'. You can do it manually or using the *showOnClickDiv* method.
 ```php
