@@ -1,7 +1,7 @@
 <?php
 /*
-LeafletMaphp class, ver. 1.2
-Copyright 2022 Aaron Montalvo
+LeafletMaphp class, ver. 1.3
+Copyright 2023 Aaron Montalvo
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
-
 
 Requirements:
 - PHP 7 or higher version;
@@ -153,7 +152,7 @@ class LeafletMaphp {
         if($color != NULL) $polygon['color'] = $color;
         array_push($this->polygons, $polygon);
         return (count($this->polygons)-1);
-}
+	}
     
     function addTooltip (int $element_type, int $element_id, string $toolTip) {
         switch($element_type) {
@@ -295,18 +294,22 @@ class LeafletMaphp {
             case self::STAMEN_TONER:
                 $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
+                $this->tilesMaxZoom = 16;
                 break;
             case self::STAMEN_TERRAIN:
                 $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
+                $this->tilesMaxZoom = 13;
                 break;
             case self::STAMEN_WATERCOLOR:
                 $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.';
+                $this->tilesMaxZoom = 16;
                 break;
             case self::OPNVKARTE_TRANSPORT:
                 $this->tilesUrl = 'http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC BY SA</a>, map data <a href="http://openstreetmap.org/">Openstreetmap ODbL</a>';
+                $this->tilesMaxZoom = 17;
                 break;
             case self::OPEN_TOPO_MAP:
                 $this->tilesUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
@@ -498,7 +501,7 @@ class LeafletMaphp {
         
         if(isset($item['onClick'])) {
             $itemText .= ".on('click', onClickShowDiv)";
-            if($this->onClickFunText == '') $this->onClickFunText = "function onClickShowDiv(e) { document.getElementById('onClickDiv').innerHTML= this.options.onClickText; }\n";            
+            if($this->onClickFunText == '') $this->onClickFunText = "function onClickShowDiv(e) { document.getElementById('onClickDiv').innerHTML= this.options.onClickText; }\n";
         }
     }
 }
