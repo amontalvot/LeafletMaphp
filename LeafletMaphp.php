@@ -65,7 +65,7 @@ class LeafletMaphp {
     private $geoJSONs = [];
     private $onClickFunText = '';
 
-    function __construct(string $id='map', int $height = 300, int $width = 300, string $style='', int $tiles=self::OSM_DE) {
+    function __construct(string $id='map', string $height = '300px', string $width = '300px', string $style='', int $tiles=self::OSM_DE) {
         $this->div_id = $id;
         $this->div_height = $height;
         $this->div_width = $width;
@@ -91,7 +91,7 @@ class LeafletMaphp {
     function showHeadTags () : string {
         return "\t<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.3/dist/leaflet.css' integrity='sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=' crossorigin=''/>
     <script src='https://unpkg.com/leaflet@1.9.3/dist/leaflet.js' integrity='sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=' crossorigin=''></script>
-    <style>#{$this->div_id} { height: {$this->div_height}px; width: {$this->div_width}px }</style>\n";
+    <style>#{$this->div_id} { height: {$this->div_height}; width: {$this->div_width} }</style>\n";
     }
 
     function setCenter(float $lat, float $lon, array $bounds=NULL, int $zoom=NULL) {
@@ -245,11 +245,8 @@ class LeafletMaphp {
     }
 
     function show() : string {
-        if((count($this->markers) == 0) && (count($this->circles) == 0) && (count($this->polygons) == 0) && (count($this->polylines) == 0) && (count($this->geoJSONs) == 0) && ($this->lat == NULL) && ($this->lon == NULL)) {
+        if((count($this->markers) == 0) && (count($this->circles) == 0) && (count($this->polygons) == 0) && (count($this->polylines) == 0) && (count($this->geoJSONs) == 0) && (($this->lat == NULL) || ($this->lon == NULL)))
             throw new LeafletMaphpException('No items added nor center set: Map is inviewable');
-        } else {
-            $drawnItems = "var drawnItems = new L.FeatureGroup([";
-        }
         $scriptText = "var map = L.map('{$this->div_id}');\n";
 
         $tiles_layer = '';

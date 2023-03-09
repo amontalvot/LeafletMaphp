@@ -11,7 +11,7 @@ $map = new LeafletMaphp($map?, $height?, $width?, $style?, $tiles?);
 ```
 The parameters, all of them non-compulsory, are:
 * a name to the required div for the map (by default 'map').
-* height and width in px (by default 300x300).
+* height and width (by default 300px300px).
 * a string containing the desired css.
 * the desired tiles to be used (see below).
 
