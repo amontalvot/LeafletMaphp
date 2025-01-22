@@ -1,7 +1,7 @@
 <?php
 /*
-LeafletMaphp class, ver. 1.3
-Copyright 2023 Aaron Montalvo
+LeafletMaphp class, ver. 2.0
+Copyright 2025 Aaron Montalvo
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,38 +18,52 @@ along with this program; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 Requirements:
-- PHP 7 or higher version;
+- PHP 8.1 or higher version;
 - An active Internet connection to access Leaflet API
 
 */
 class LeafletMaphpException extends Exception {};
 
-class LeafletMaphp {
-    const MARKER = 0;
-    const CIRCLE = 1;
-    const POLYGON = 2;
-    const POLYLINE = 3;
+enum figure {
+    case MARKER;
+    case CIRCLE;
+    case POLYGON;
+    case POLYLINE;
+}
 
-    const ES_PNOA = 10;
-    const ES_RASTER_IGN = 11;
-    const ES_IGN_BASE = 12;
-    const ES_CATASTRO = 13;
-    const OSM = 14;
-    const OSM_DE = 15;
-    const OSM_FR = 16;
-    const OSM_HUMANITARIAN = 17;
-    const STAMEN_TONER = 18;
-    const STAMEN_TERRAIN = 19;
-    const STAMEN_WATERCOLOR = 20;
-    const OPNVKARTE_TRANSPORT = 21;
-    const OPEN_TOPO_MAP = 22;
-    const CUSTOM_TILES = 23;
+enum map {
+    case CUSTOM_TILES;
+    case ES_PNOA;
+    case ES_RASTER_IGN;
+    case ES_IGN_BASE;
+    case ES_CATASTRO;
+    case ES_MINUTAS;
+    case ES_AMS_1956;
+    case ES_OLISTAT;
+    case ES_SIGPAC;
+    case ES_PNOA_2006;
+    case ES_MTN25;
+    case ES_MTN50;
+    case ES_MTN50_HIST;
+    case OSM;
+    case OSM_DE;
+    case OSM_FR;
+    case OSM_HUMANITARIAN;
+    case STAMEN_TONER;
+    case STAMEN_TERRAIN;
+    case STAMEN_WATERCOLOR;
+    case OPNVKARTE_TRANSPORT;
+    case OPEN_TOPO_MAP;
+
+}
+
+class LeafletMaphp {
 
     private $div_id;
     private $div_height;
     private $div_style;
     private $div_width;
-    private $tiles = self::OSM_DE;
+    private $tiles = map::OSM_DE;
     private $tilesUrl = '';
     private $tilesAtt = '';
     private $tilesMinZoom = 1;
@@ -65,17 +79,13 @@ class LeafletMaphp {
     private $geoJSONs = [];
     private $onClickFunText = '';
 
-    function __construct(string $id='map', string $height = '300px', string $width = '300px', string $style='', int $tiles=self::OSM_DE) {
+    function __construct(string $id='map', string $height = '300px', string $width = '300px', string $style='', map $tiles=map::OSM_DE) {
         $this->div_id = $id;
-        $this->div_height = $height;
-        $this->div_width = $width;
+        is_numeric($height) ? $this->div_height = "{$height}px" : $this->div_height = $height;
+        is_numeric($width) ? $this->div_width = "{$width}px" : $this->div_width = $width;
         $this->div_style = $style;
         if(!empty($tiles)) {
-            if(($tiles < self::ES_PNOA) || ($tiles > self::CUSTOM_TILES)) {
-                throw new LeafletMaphpException("Wrong tiles selection {$tiles}");
-            } else {
-                $this->tiles = $tiles;
-            }
+            $this->tiles = $tiles;
         }
     }
 	
@@ -154,21 +164,21 @@ class LeafletMaphp {
         return (count($this->polygons)-1);
 	}
     
-    function addTooltip (int $element_type, int $element_id, string $toolTip) {
+    function addTooltip (figure $element_type, int $element_id, string $toolTip) {
         switch($element_type) {
-            case self::MARKER:
+            case figure::MARKER:
                 if(!isset($this->markers[$element_id])) throw new LeafletMaphpException('Wrong marker ID');
                 $this->markers[$element_id]['toolTip'] = $toolTip;
                 break;
-            case self::CIRCLE:
+            case figure::CIRCLE:
                 if(!isset($this->circles[$element_id])) throw new LeafletMaphpException('Wrong circle ID');
                 $this->circles[$element_id]['toolTip'] = $toolTip;
                 break;
-            case self::POLYGON:
+            case figure::POLYGON:
                 if(!isset($this->polygons[$element_id])) throw new LeafletMaphpException('Wrong polygon ID');
                 $this->polygons[$element_id]['toolTip'] = $toolTip;
                 break;
-            case self::POLYLINE:
+            case figure::POLYLINE:
                 if(!isset($this->polylines[$element_id])) throw new LeafletMaphpException('Wrong polyline ID');
                 $this->polylines[$element_id]['toolTip'] = $toolTip;
                 break;
@@ -178,21 +188,21 @@ class LeafletMaphp {
         }
     }
     
-    function addPopUp (int $element_type, int $element_id, string $popUp) {
+    function addPopUp (figure $element_type, int $element_id, string $popUp) {
         switch($element_type) {
-            case self::MARKER:
+            case figure::MARKER:
                 if(!isset($this->markers[$element_id])) throw new LeafletMaphpException('Wrong marker ID');
                 $this->markers[$element_id]['popUp'] = $popUp;
                 break;
-            case self::CIRCLE:
+            case figure::CIRCLE:
                 if(!isset($this->circles[$element_id])) throw new LeafletMaphpException('Wrong circle ID');
                 $this->circles[$element_id]['popUp'] = $popUp;
                 break;
-            case self::POLYGON:
+            case figure::POLYGON:
                 if(!isset($this->polygons[$element_id])) throw new LeafletMaphpException('Wrong polygon ID');
                 $this->polygons[$element_id]['popUp'] = $popUp;
                 break;
-            case self::POLYLINE:
+            case figure::POLYLINE:
                 if(!isset($this->polylines[$element_id])) throw new LeafletMaphpException('Wrong polyline ID');
                 $this->polylines[$element_id]['popUp'] = $popUp;
                 break;
@@ -202,21 +212,21 @@ class LeafletMaphp {
         }
     }
     
-    function addOnClickText (int $element_type, int $element_id, string $onClick) {
+    function addOnClickText (figure $element_type, int $element_id, string $onClick) {
         switch($element_type) {
-            case self::MARKER:
+            case figure::MARKER:
                 if(!isset($this->markers[$element_id])) throw new LeafletMaphpException('Wrong marker ID');
                 $this->markers[$element_id]['onClick'] = $onClick;
                 break;
-            case self::CIRCLE:
+            case figure::CIRCLE:
                 if(!isset($this->circles[$element_id])) throw new LeafletMaphpException('Wrong circle ID');
                 $this->circles[$element_id]['onClick'] = $onClick;
                 break;
-            case self::POLYGON:
+            case figure::POLYGON:
                 if(!isset($this->polygons[$element_id])) throw new LeafletMaphpException('Wrong polygon ID');
                 $this->polygons[$element_id]['onClick'] = $onClick;
                 break;
-            case self::POLYLINE:
+            case figure::POLYLINE:
                 if(!isset($this->polylines[$element_id])) throw new LeafletMaphpException('Wrong polyline ID');
                 $this->polylines[$element_id]['onClick'] = $onClick;
                 break;
@@ -251,69 +261,115 @@ class LeafletMaphp {
 
         $tiles_layer = '';
         switch($this->tiles) {
-            case self::ES_PNOA:
+            case map::ES_PNOA:
                 $this->tilesUrl= 'http://www.ign.es/wms-inspire/pnoa-ma';
                 $tiles_layer = 'OI.OrthoimageCoverage';
-                $this->tilesAtt = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesAtt = 'PNOA &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
                 break;
-            case self::ES_RASTER_IGN:
+            case map::ES_RASTER_IGN:
                 $this->tilesUrl= 'http://www.ign.es/wms-inspire/mapa-raster';
                 $tiles_layer = 'mtn_rasterizado';
-                $this->tilesAtt = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesAtt = 'MTN rasterizado &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
                 break;
-            case self::ES_IGN_BASE:
+            case map::ES_IGN_BASE:
                 $this->tilesUrl= 'http://www.ign.es/wms-inspire/ign-base';
                 $tiles_layer = 'IGNBaseTodo';
-                $this->tilesAtt = '&copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesAtt = 'IGN Base &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
                 break;
-            case self::ES_CATASTRO:
+            case map::ES_CATASTRO:
                 $this->tilesUrl= 'http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx';
                 $tiles_layer = 'Catastro';
-                $this->tilesAtt = '&copy; © <a href="http://www.catastro.minhap.gob.es/esp/wms.asp">Dirección General del Catastro</a>';
+                $this->tilesAtt = 'Catastro &copy; © <a href="http://www.catastro.minhap.gob.es/esp/wms.asp">Dirección General del Catastro</a>';
+                $this->tilesMaxZoom = 20;
+                break;
+            case map::ES_AMS_1956:
+                $this->tilesUrl= 'https://www.ign.es/wms/pnoa-historico?';
+                $tiles_layer = 'AMS_1956-1957';
+                $this->tilesAtt = 'Vuelo americano Serie B, 1956-1957 &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 20;
+                break;
+            case map::ES_OLISTAT:
+                $this->tilesUrl= 'https://www.ign.es/wms/pnoa-historico?';
+                $tiles_layer = 'OLISTAT';
+                $this->tilesAtt = 'OLISTAT 1997-1998 &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 20;
+                break;
+            case map::ES_SIGPAC:
+                $this->tilesUrl= 'https://www.ign.es/wms/pnoa-historico?';
+                $tiles_layer = 'SIGPAC';
+                $this->tilesAtt = 'SIGPAC 1997-2003 &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 20;
+                break;
+            case map::ES_PNOA_2006:
+                $this->tilesUrl= 'https://www.ign.es/wms/pnoa-historico?';
+                $tiles_layer = 'PNOA2006';
+                $this->tilesAtt = '2006 PNOA &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 20;
+                break;
+            case map::ES_MINUTAS:
+                $this->tilesUrl= 'https://www.ign.es/wms/minutas-cartograficas?';
+                $tiles_layer = 'Minutas';
+                $this->tilesAtt = 'Planimetrías de España (1870-1950) &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 17;
+                break;
+            case map::ES_MTN25:
+                $this->tilesUrl= 'https://www.ign.es/wmts/primera-edicion-mtn?layer=mtn25-edicion1&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&&TileMatrix={z}&TileCol={x}&TileRow={y}';
+                $this->tilesAtt = 'Primera edición MTN25 (1975-2003) &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 17;
+                break;
+            case map::ES_MTN50:
+                $this->tilesUrl= 'https://www.ign.es/wmts/primera-edicion-mtn?layer=mtn50-edicion1&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&&TileMatrix={z}&TileCol={x}&TileRow={y}';
+                $this->tilesAtt = 'Primera edición MTN50 (1875-1968) &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 17;
+                break;
+            case map::ES_MTN50_HIST:
+                $this->tilesUrl= 'https://www.ign.es/wmts/primera-edicion-mtn?layer=catastrones&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&&TileMatrix={z}&TileCol={x}&TileRow={y}';
+                $this->tilesAtt = 'Minutas MTN50 (1910-1970) &copy; © <a href="https://www.ign.es/web/ign/portal/ide-area-nodo-ide-ign">Instituto Geográfico Nacional de España</a>';
+                $this->tilesMaxZoom = 17;
                 break;
             //free maps taken from list at https://wiki.openstreetmap.org/wiki/Tiles, see OSM wiki for updated information about availability and attribution
-            case self::OSM:
-                $this->tilesUrl = 'http://tile.openstreetmap.org/{z}/{x}/{y}.png';
+            case map::OSM:
+                $this->tilesUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
                 $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
-            case self::OSM_DE:
-                $this->tilesUrl = 'http://a.tile.openstreetmap.de/{z}/{x}/{y}.png';
+            case map::OSM_DE:
+                $this->tilesUrl = 'https://a.tile.openstreetmap.de/{z}/{x}/{y}.png';
                 $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
-            case self::OSM_FR:
-                $this->tilesUrl = 'http://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
+            case map::OSM_FR:
+                $this->tilesUrl = 'https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
                 $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
-            case self::OSM_HUMANITARIAN:
-                $this->tilesUrl = 'http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
+            case map::OSM_HUMANITARIAN:
+                $this->tilesUrl = 'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png';
                 $this->tilesAtt = '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors';
                 break;
-            case self::STAMEN_TONER:
-                $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png';
+            case map::STAMEN_TONER:
+                $this->tilesUrl = 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
                 $this->tilesMaxZoom = 16;
                 break;
-            case self::STAMEN_TERRAIN:
-                $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png';
+            case map::STAMEN_TERRAIN:
+                $this->tilesUrl = 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.';
                 $this->tilesMaxZoom = 13;
                 break;
-            case self::STAMEN_WATERCOLOR:
-                $this->tilesUrl = 'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png';
+            case map::STAMEN_WATERCOLOR:
+                $this->tilesUrl = 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg';
                 $this->tilesAtt = 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.';
                 $this->tilesMaxZoom = 16;
                 break;
-            case self::OPNVKARTE_TRANSPORT:
+            case map::OPNVKARTE_TRANSPORT:
                 $this->tilesUrl = 'http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC BY SA</a>, map data <a href="http://openstreetmap.org/">Openstreetmap ODbL</a>';
                 $this->tilesMaxZoom = 17;
                 break;
-            case self::OPEN_TOPO_MAP:
+            case map::OPEN_TOPO_MAP:
                 $this->tilesUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
                 $this->tilesAtt = 'Kartendaten: © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM | Kartendarstellung: © <a href="http://opentopomap.org/">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
                 $this->tilesMaxZoom = 17;
                 break;
-            case self::CUSTOM_TILES:
+            case map::CUSTOM_TILES:
 				if(empty($this->tilesUrl) || empty($this->tilesAtt)) {
 					throw new LeafletMaphpException('Custom tiles not configured. Use method "setCustomTiles" ');
 				}
@@ -324,10 +380,14 @@ class LeafletMaphp {
         }
 
         switch($this->tiles) {
-            case self::ES_PNOA: case self::ES_RASTER_IGN: case self::ES_IGN_BASE: case self::ES_CATASTRO: 
+            case map::ES_PNOA: case map::ES_RASTER_IGN: case map::ES_IGN_BASE: case map::ES_CATASTRO:
+            case map::ES_MINUTAS: case map::ES_AMS_1956: case map::ES_OLISTAT: case map::ES_SIGPAC: case map::ES_PNOA_2006:
                 $scriptText .= "L.tileLayer.wms('{$this->tilesUrl}', {layers: '$tiles_layer', format: 'image/png', transparent: false, continuousWorld : true,";
                 break;
-            case self::OSM: case self::OSM_DE: case self::OSM_FR: case self::OSM_HUMANITARIAN: case self::STAMEN_TONER: case self::STAMEN_TERRAIN: case self::STAMEN_WATERCOLOR: case self::OPNVKARTE_TRANSPORT: case self::OPEN_TOPO_MAP: case self::CUSTOM_TILES:
+            case map::OSM: case map::OSM_DE: case map::OSM_FR: case map::OSM_HUMANITARIAN:
+            case map::STAMEN_TONER: case map::STAMEN_TERRAIN: case map::STAMEN_WATERCOLOR:
+            case map::OPNVKARTE_TRANSPORT: case map::OPEN_TOPO_MAP: case map::CUSTOM_TILES:
+            case map::ES_MTN25: case map::ES_MTN50: case map::ES_MTN50_HIST:
                 $scriptText .= "L.tileLayer('{$this->tilesUrl}', {";
                 break;
             default:
